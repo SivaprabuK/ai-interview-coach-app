@@ -8,6 +8,7 @@ import InterviewResults from './components/dashboard/InterviewResults'
 import InterviewPage from './pages/InterviewPage'
 import LoginPage from './pages/LoginPage'
 import ProtectedRoute from './components/auth/ProtectedRoute'
+import InterviewHistoryPage from './pages/InterviewHistoryPage'
 
 function Dashboard() {
   return (
@@ -43,6 +44,7 @@ function App() {
           <Route path="/" element={<DashboardLayout />}>
             <Route index element={<Dashboard />} />
             <Route path="interview" element={<InterviewPage />} />
+            <Route path="interview-history" element={<InterviewHistoryPage />} />
           </Route>
         </Route>
       </Routes>
