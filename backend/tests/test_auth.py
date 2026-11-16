@@ -1,6 +1,6 @@
 from app.models import User
 from app.core.security import hash_password
-
+from app.services.auth_service import AuthService
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
@@ -75,6 +75,7 @@ def test_login_user_success(client):
     assert result["status_code"] == 200
     assert result["message"] == "Login successful"
     assert result["data"]["access_token"]
+    assert result["data"]["refresh_token"]
     assert result["data"]["token_type"] == "bearer"
 
 
@@ -159,7 +160,10 @@ def test_get_current_user_with_valid_token(db_session):
     def protected_route(
         current_user: User = Depends(get_current_user),
     ):
-        return {"user_id": current_user.id, "email": current_user.email}
+        return {
+            "user_id": current_user.id,
+            "email": current_user.email,
+        }
 
     user = User(
         name="Token User",
@@ -172,12 +176,14 @@ def test_get_current_user_with_valid_token(db_session):
     db_session.commit()
     db_session.refresh(user)
 
-    token = create_access_token(subject=str(user.id))
+    tokens = AuthService.create_session(db_session, user)
 
     with TestClient(test_app) as test_client:
         response = test_client.get(
             "/protected",
-            headers={"Authorization": f"Bearer {token}"},
+            headers={
+                "Authorization": f"Bearer {tokens['access_token']}"
+            },
         )
 
     assert response.status_code == 200
@@ -204,3 +210,113 @@ def test_get_current_user_with_invalid_token(db_session):
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Could not validate credentials"
+
+
+def test_refresh_token_success(client):
+    client.post(
+        "/api/v1/auth/register",
+        json={
+            "name": "Refresh User",
+            "email": "refresh@example.com",
+            "password": "TestPass123!",
+        },
+    )
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "refresh@example.com",
+            "password": "TestPass123!",
+        },
+    )
+
+    old_refresh_token = login_response.json()["data"]["refresh_token"]
+
+    response = client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": old_refresh_token},
+    )
+
+    assert response.status_code == 200
+
+    result = response.json()
+
+    assert result["status"] is True
+    assert result["data"]["access_token"]
+    assert result["data"]["refresh_token"]
+    assert result["data"]["refresh_token"] != old_refresh_token
+
+
+def test_refresh_token_reuse_fails(client):
+    client.post(
+        "/api/v1/auth/register",
+        json={
+            "name": "Refresh User",
+            "email": "reuse@example.com",
+            "password": "TestPass123!",
+        },
+    )
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "reuse@example.com",
+            "password": "TestPass123!",
+        },
+    )
+
+    old_refresh_token = login_response.json()["data"]["refresh_token"]
+
+    first_response = client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": old_refresh_token},
+    )
+
+    assert first_response.status_code == 200
+
+    second_response = client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": old_refresh_token},
+    )
+
+    assert second_response.status_code == 401
+
+def test_logout_user_success(client):
+    client.post(
+        "/api/v1/auth/register",
+        json={
+            "name": "Logout User",
+            "email": "logout@example.com",
+            "password": "TestPass123!",
+        },
+    )
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "logout@example.com",
+            "password": "TestPass123!",
+        },
+    )
+
+    access_token = login_response.json()["data"]["access_token"]
+
+    response = client.post(
+        "/api/v1/auth/logout",
+        headers={
+            "Authorization": f"Bearer {access_token}"
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] is True
+    assert response.json()["message"] == "Logout successful"
+
+    second_response = client.post(
+        "/api/v1/auth/logout",
+        headers={
+            "Authorization": f"Bearer {access_token}"
+        },
+    )
+
+    assert second_response.status_code == 401
