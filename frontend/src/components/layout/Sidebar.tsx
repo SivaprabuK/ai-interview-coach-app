@@ -9,7 +9,8 @@ import {
   LogOut,
   BrainCircuit,
 } from 'lucide-react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { logoutUser } from '../../services/authService'
 
 const menuItems = [
   { name: 'Dashboard', icon: LayoutDashboard, path: '/' },
@@ -22,6 +23,17 @@ const menuItems = [
 ]
 
 function Sidebar() {
+
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser()
+    } finally {
+      navigate('/login', { replace: true })
+    }
+  }
+
   return (
     <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col overflow-y-auto bg-[#171729] px-5 py-6 text-white">
       <div className="mb-10 flex items-center gap-3 px-2">
@@ -72,7 +84,10 @@ function Sidebar() {
         })}
       </nav>
 
-      <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-400 transition hover:bg-red-500/10 hover:text-red-400">
+      <button
+        onClick={handleLogout}
+        className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-400 transition hover:bg-red-500/10 hover:text-red-400 cursor-pointer"
+       >
         <LogOut size={19} />
         <span>Logout</span>
       </button>

@@ -7,6 +7,7 @@ interface LoginRequest {
 
 interface LoginResponse {
   access_token: string
+  refresh_token: string
   token_type: string
 }
 
@@ -25,9 +26,21 @@ export const loginUser = async (
     credentials,
   )
 
-  const token = response.data.data.access_token
+  const tokens = response.data.data
 
-  localStorage.setItem('access_token', token)
+  localStorage.setItem('access_token', tokens.access_token)
+  localStorage.setItem('refresh_token', tokens.refresh_token)
 
-  return response.data.data
+  return tokens
 }
+
+
+export const logoutUser = async (): Promise<void> => {
+  try {
+    await api.post('/auth/logout')
+  } finally {
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
+  }
+}
+
