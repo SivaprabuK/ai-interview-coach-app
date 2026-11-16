@@ -10,7 +10,8 @@ from app.main import app
 from app.models.interview import Interview
 
 from app.models import User
-from app.core.security import hash_password, create_access_token
+from app.core.security import hash_password
+from app.services.auth_service import AuthService
 
 TEST_DATABASE_URL = (
     settings.database_url.rsplit("/", 1)[0]
@@ -96,7 +97,12 @@ def auth_user(db_session):
 
 
 @pytest.fixture
-def auth_headers(auth_user):
-    token = create_access_token(subject=str(auth_user.id))
+def auth_headers(db_session, auth_user):
+    tokens = AuthService.create_session(
+        db_session,
+        auth_user,
+    )
 
-    return {"Authorization": f"Bearer {token}"}
+    return {
+        "Authorization": f"Bearer {tokens['access_token']}"
+    }

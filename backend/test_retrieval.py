@@ -2,12 +2,24 @@ from app.db.database import SessionLocal
 from app.services.document.document_retrieval_service import (
     DocumentRetrievalService,
 )
+from app.models import User
+from app.core.security import hash_password
 
 
 def test_document_retrieval():
     db = SessionLocal()
 
     try:
+        user = User(
+            name="Retrieval Test User",
+            email="retrieval-test@example.com",
+            hashed_password=hash_password("TestPass123!"),
+            is_active=True,
+        )
+
+        db.add(user)
+        db.flush()
+
         retrieval_service = DocumentRetrievalService()
 
         query = "Explain diabetes symptoms and treatment options"
@@ -15,6 +27,7 @@ def test_document_retrieval():
         results = retrieval_service.retrieve_relevant_chunks(
             db=db,
             query=query,
+            user_id=user.id,
             top_k=3,
         )
 
