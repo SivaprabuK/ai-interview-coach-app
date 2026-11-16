@@ -46,3 +46,17 @@ export interface QuestionEvaluation {
   suggested_answer: string
   feedback: string
 }
+
+export interface AnswerEvaluationHistoryItem {
+  id: number
+  generated_question_id: number | null
+  question: string
+  expected_answer_points: string[]
+  user_answer: string
+  score: number
+  strengths: string[]
+  areas_to_improve: string[]
+  suggested_answer: string
+  feedback: string
+  created_at: string
+}
