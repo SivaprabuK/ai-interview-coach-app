@@ -1,9 +1,17 @@
 import { Navigate, Outlet } from 'react-router-dom'
 
 function ProtectedRoute() {
-  const token = localStorage.getItem('access_token')
+  const accessToken = localStorage.getItem('access_token')
+  const refreshToken = localStorage.getItem('refresh_token')
 
-  return token ? <Outlet /> : <Navigate to="/login" replace />
+  if (!accessToken || !refreshToken) {
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
+
+    return <Navigate to="/login" replace />
+  }
+
+  return <Outlet />
 }
 
 export default ProtectedRoute
