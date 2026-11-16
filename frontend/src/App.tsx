@@ -9,6 +9,7 @@ import InterviewPage from './pages/InterviewPage'
 import LoginPage from './pages/LoginPage'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import InterviewHistoryPage from './pages/InterviewHistoryPage'
+import InsightsPage from './pages/InsightsPage'
 
 function Dashboard() {
   return (
@@ -45,6 +46,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="interview" element={<InterviewPage />} />
             <Route path="interview-history" element={<InterviewHistoryPage />} />
+            <Route path="insights" element={<InsightsPage />} />
           </Route>
         </Route>
       </Routes>

@@ -16,7 +16,7 @@ const menuItems = [
   { name: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { name: 'Interview', icon: Video, path: '/interview' },
   { name: 'Interview History', icon: History, path: '/interview-history' },
-  { name: 'Insights', icon: BarChart3 },
+  { name: 'Insights', icon: BarChart3, path: '/insights' },
   { name: 'Talent', icon: Users },
   { name: 'FAQ', icon: CircleHelp },
   { name: 'Settings', icon: Settings },
