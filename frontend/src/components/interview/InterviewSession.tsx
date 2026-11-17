@@ -24,8 +24,21 @@ interface InterviewSessionProps {
   ) => void
 }
 
+interface InterviewSessionProps {
+  role: string
+  difficulty: string
+  duration: string
+  mode: string
+  questions?: InterviewQuestion[]
+  onExit: () => void
+  onComplete: (
+    answers: Record<number, string>,
+    questions: InterviewQuestion[]
+  ) => void
+}
 
-const questions = [
+
+const defaultQuestions: InterviewQuestion[] = [
   {
     question: 'Explain the difference between a Python list and a tuple.',
     expected_answer_points: [
@@ -79,9 +92,11 @@ function InterviewSession({
   difficulty,
   duration,
   mode,
+  questions: providedQuestions,
   onExit,
   onComplete,
 }: InterviewSessionProps) {
+  const questions = providedQuestions ?? defaultQuestions
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [answers, setAnswers] = useState<Record<number, string>>({})
   const [submitted, setSubmitted] = useState(false)

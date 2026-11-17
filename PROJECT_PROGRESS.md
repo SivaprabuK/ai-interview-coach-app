@@ -7,8 +7,8 @@ An AI-powered interview preparation platform designed to help developers practic
 - Practice technical interview questions.
 - Receive AI-assisted feedback on submitted answers.
 - Upload technical documents and ask questions based on their content.
-- Track interview preparation progress.
-- Build a full-stack application using modern backend and frontend technologies.
+- Track interview preparation progress and identify improvement areas.
+- Build a full-stack application using modern backend, frontend, and AI technologies.
 
 ## Technology Stack
 
@@ -26,6 +26,10 @@ An AI-powered interview preparation platform designed to help developers practic
 - React
 - TypeScript
 - Vite
+- Tailwind CSS
+- Axios
+- Recharts
+- Lucide React
 
 ### AI and Development Tools
 - Google Gemini API
@@ -76,10 +80,16 @@ ai-interview-coach/
 - [x] Implement database migrations using Alembic.
 - [x] Implement user registration and authentication.
 - [x] Implement JWT-based authentication and authorization.
+- [x] Implement access and refresh token management.
+- [x] Implement logout and session revocation.
 - [x] Implement interview session management.
 - [x] Implement interview question generation.
 - [x] Implement answer evaluation and session results functionality.
 - [x] Implement user-specific access control for interview resources.
+- [x] Implement interview history APIs.
+- [x] Implement performance insights API.
+- [x] Calculate evaluation metrics, average scores, and score trends.
+- [x] Identify frequently mentioned strengths and improvement areas.
 
 ### Document-Based RAG Module
 
@@ -99,14 +109,23 @@ ai-interview-coach/
 
 ### Frontend Development
 
-- [ ] Set up the React and TypeScript frontend.
-- [ ] Implement the authentication UI.
-- [ ] Build the dashboard based on the InterviewAI UI reference.
-- [ ] Develop interview session and question interfaces.
-- [ ] Integrate AI answer evaluation and session results.
+- [x] Set up the React and TypeScript frontend.
+- [x] Implement the authentication UI.
+- [x] Build the dashboard based on the InterviewAI UI reference.
+- [x] Develop interview session and question interfaces.
+- [x] Integrate AI answer evaluation and session results.
+- [x] Implement interview history interface.
+- [x] Build the performance insights dashboard.
+- [x] Display evaluation metrics and average scores.
+- [x] Implement score trend visualization using Recharts.
+- [x] Display top strengths and improvement areas.
+- [x] Integrate frontend authentication with backend APIs.
+- [x] Implement automatic access token refresh and retry.
+- [x] Implement logout functionality.
+- [x] Implement protected routes.
+- [x] Verify frontend API integration and production build.
 - [ ] Build the document upload and listing interface.
 - [ ] Integrate document-based question answering.
-- [ ] Connect frontend components with backend APIs.
 
 ### Deployment and DevOps
 
@@ -124,15 +143,20 @@ ai-interview-coach/
 - [x] Vector retrieval and user isolation tests.
 - [x] Document answer generation tests.
 - [x] Document question-answering API tests.
+- [x] Insights API tests.
+- [x] Insights service tests.
+- [x] Logout and refresh token tests.
 
-**Latest document test result:** 12 passed.
+**Latest complete backend test result:** 100 passed.
 
 ## Project Status
 
-The backend has implemented its core interview preparation functionality, authentication, database integration, and document-based RAG capabilities.
+The backend has implemented its core interview preparation functionality, authentication, database integration, document-based RAG capabilities, and performance insights.
 
 The document Q&A module supports uploading PDF/DOCX files, extracting and embedding their content, retrieving relevant information using PostgreSQL pgvector, and generating context-based answers using Gemini.
 
-The next development phase focuses on building the React frontend and integrating it with the existing backend APIs.
+The frontend now includes authentication, dashboard, interview workflows, interview history, and a performance insights dashboard. Frontend authentication supports automatic access token refresh, logout, and protected routes.
+
+The next development phase focuses on completing document management and document-based Q&A frontend integration, followed by Docker configuration, CI/CD, end-to-end testing, and deployment.
 
 This project is under active development, with a focus on clean architecture, testing, and practical AI engineering skills.

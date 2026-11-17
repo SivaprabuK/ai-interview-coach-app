@@ -1,5 +1,4 @@
-
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Video,
   Clock,
@@ -13,6 +12,11 @@ import {
 import InterviewSession from '../components/interview/InterviewSession'
 import InterviewResults from '../components/dashboard/InterviewResults'
 import { evaluateAnswer } from '../services/answerEvaluationService'
+import {
+  getDocuments,
+  generateDocumentInterview,
+} from '../services/documentService'
+import type { Document } from '../types/document'
 import type {
   InterviewEvaluation,
   InterviewQuestion,
@@ -27,12 +31,121 @@ function InterviewPage() {
   const [interviewMode, setInterviewMode] = useState('text')
   const [showResults, setShowResults] = useState(false)
 
+  const [interviewType, setInterviewType] = useState<'general' | 'document'>(
+    'general',
+  )
+  const [documents, setDocuments] = useState<Document[]>([])
+  const [selectedDocumentId, setSelectedDocumentId] = useState('')
+  const [questionCount, setQuestionCount] = useState('5')
+  const [generatedQuestions, setGeneratedQuestions] =
+    useState<InterviewQuestion[] | null>(null)
+
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [documentError, setDocumentError] = useState<string | null>(null)
+
   const [isEvaluating, setIsEvaluating] = useState(false)
   const [evaluationError, setEvaluationError] = useState<string | null>(null)
   const [evaluation, setEvaluation] =
     useState<InterviewEvaluation | null>(null)
 
-  // Evaluate interview answers
+  useEffect(() => {
+    if (!showSetup || interviewType !== 'document') return
+
+    let isActive = true
+
+    const loadDocuments = async () => {
+      setIsLoadingDocuments(true)
+      setDocumentError(null)
+
+      try {
+        const result = await getDocuments()
+
+        if (isActive) {
+          const processedDocuments = result.filter(
+            (document) => document.status === 'processed',
+          )
+
+          setDocuments(processedDocuments)
+
+          setSelectedDocumentId((current) => {
+            if (
+              current &&
+              processedDocuments.some(
+                (document) => String(document.document_id) === current,
+              )
+            ) {
+              return current
+            }
+
+            return processedDocuments.length > 0
+              ? String(processedDocuments[0].document_id)
+              : ''
+          })
+        }
+      } catch (error) {
+        if (isActive) {
+          setDocumentError(
+            error instanceof Error
+              ? error.message
+              : 'Failed to load documents.',
+          )
+        }
+      } finally {
+        if (isActive) {
+          setIsLoadingDocuments(false)
+        }
+      }
+    }
+
+    loadDocuments()
+
+    return () => {
+      isActive = false
+    }
+  }, [showSetup, interviewType])
+
+  const handleGenerateDocumentInterview = async () => {
+    if (!selectedDocumentId) {
+      setDocumentError('Please select a processed document.')
+      return
+    }
+
+    const selectedDocument = documents.find(
+      (document) =>
+        String(document.document_id) === selectedDocumentId,
+    )
+
+    if (!selectedDocument) {
+      setDocumentError('Selected document was not found.')
+      return
+    }
+
+    setIsGenerating(true)
+    setDocumentError(null)
+
+    try {
+      const response = await generateDocumentInterview({
+        document_id: Number(selectedDocumentId),
+        difficulty,
+        question_count: Number(questionCount),
+      })
+
+      setGeneratedQuestions(response.questions)
+      setRole(selectedDocument.filename)
+      setShowSetup(false)
+      setShowSession(true)
+    } catch (error) {
+      setDocumentError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to generate interview questions.',
+      )
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   const handleInterviewComplete = async (
     answers: Record<number, string>,
     questions: InterviewQuestion[],
@@ -110,7 +223,6 @@ function InterviewPage() {
     }
   }
 
-  // Start a completely new interview
   const handleStartNewInterview = () => {
     setShowResults(false)
     setShowSession(false)
@@ -123,17 +235,21 @@ function InterviewPage() {
     setDuration('30')
     setInterviewMode('text')
 
+    setInterviewType('general')
+    setSelectedDocumentId('')
+    setQuestionCount('5')
+    setGeneratedQuestions(null)
+    setDocumentError(null)
+
     setShowSetup(true)
   }
 
-  // Return to setup while retaining configuration
   const handleBackToSetup = () => {
     setShowResults(false)
     setShowSession(false)
     setShowSetup(true)
   }
 
-  // Results screen
   if (showResults) {
     return (
       <div className="space-y-6">
@@ -167,14 +283,12 @@ function InterviewPage() {
           </div>
         )}
 
-        {evaluation && (
-          <InterviewResults evaluation={evaluation} />
-        )}
+        {evaluation && <InterviewResults evaluation={evaluation} />}
       </div>
     )
   }
 
-  // Interview session screen
+  // Interview session screen.
   if (showSession) {
     return (
       <InterviewSession
@@ -182,13 +296,14 @@ function InterviewPage() {
         difficulty={difficulty}
         duration={duration}
         mode={interviewMode}
+        questions={generatedQuestions ?? undefined}
         onExit={() => setShowSession(false)}
         onComplete={handleInterviewComplete}
       />
     )
   }
 
-  // Interview landing page
+  // Interview landing page.
   return (
     <div className="space-y-8">
       <div>
@@ -239,11 +354,9 @@ function InterviewPage() {
             <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-purple-100 text-purple-600">
               <Video size={22} />
             </div>
-
             <h3 className="font-semibold text-gray-800">
               Technical Interview
             </h3>
-
             <p className="mt-2 text-sm text-gray-500">
               Practice Python, React, SQL, APIs, and backend development.
             </p>
@@ -253,11 +366,9 @@ function InterviewPage() {
             <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
               <Clock size={22} />
             </div>
-
             <h3 className="font-semibold text-gray-800">
               Timed Practice
             </h3>
-
             <p className="mt-2 text-sm text-gray-500">
               Improve your confidence with structured interview sessions.
             </p>
@@ -267,11 +378,9 @@ function InterviewPage() {
             <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-green-100 text-green-600">
               <BarChart3 size={22} />
             </div>
-
             <h3 className="font-semibold text-gray-800">
               AI Evaluation
             </h3>
-
             <p className="mt-2 text-sm text-gray-500">
               Understand your strengths and areas for improvement.
             </p>
@@ -293,6 +402,7 @@ function InterviewPage() {
                 type="button"
                 onClick={() => {
                   setRole(recommendedRole)
+                  setInterviewType('general')
                   setShowSetup(true)
                 }}
                 className="flex cursor-pointer items-center justify-between rounded-lg border border-gray-100 p-4 text-left transition hover:border-purple-300 hover:bg-purple-50"
@@ -302,12 +412,10 @@ function InterviewPage() {
                     className="text-purple-600"
                     size={20}
                   />
-
                   <span className="text-sm font-semibold text-gray-700">
                     {recommendedRole}
                   </span>
                 </div>
-
                 <ArrowRight size={18} className="text-gray-400" />
               </button>
             ),
@@ -317,73 +425,173 @@ function InterviewPage() {
 
       {/* Interview Setup Modal */}
       {showSetup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
+          <div className="my-auto w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
             <div className="mb-6">
               <h2 className="text-xl font-bold text-gray-800">
                 Setup Your Interview
               </h2>
-
               <p className="mt-1 text-sm text-gray-500">
                 Customize your AI interview session.
               </p>
             </div>
 
             <div className="space-y-5">
-              {/* Interview Mode */}
+              {/* Interview Type */}
               <div>
                 <label className="mb-3 block text-sm font-medium text-gray-700">
-                  Interview Mode
+                  Interview Type
                 </label>
 
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { id: 'text', label: 'Text', icon: MessageSquare },
-                    { id: 'audio', label: 'Audio', icon: Mic },
-                    { id: 'video', label: 'Video', icon: Video },
-                  ].map((mode) => {
-                    const Icon = mode.icon
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInterviewType('general')
+                      setDocumentError(null)
+                    }}
+                    className={`rounded-xl border p-3 text-sm font-semibold transition ${
+                      interviewType === 'general'
+                        ? 'border-purple-600 bg-purple-50 text-purple-700'
+                        : 'border-gray-200 text-gray-600 hover:border-purple-300'
+                    }`}
+                  >
+                    General Interview
+                  </button>
 
-                    return (
-                      <button
-                        key={mode.id}
-                        type="button"
-                        onClick={() => setInterviewMode(mode.id)}
-                        className={`rounded-xl border p-4 text-center transition ${
-                          interviewMode === mode.id
-                            ? 'border-purple-600 bg-purple-50 text-purple-700'
-                            : 'border-gray-200 text-gray-600 hover:border-purple-300'
-                        }`}
-                      >
-                        <Icon className="mx-auto h-6 w-6" />
-
-                        <div className="mt-2 text-sm font-semibold">
-                          {mode.label}
-                        </div>
-                      </button>
-                    )
-                  })}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInterviewType('document')
+                      setDocumentError(null)
+                    }}
+                    className={`rounded-xl border p-3 text-sm font-semibold transition ${
+                      interviewType === 'document'
+                        ? 'border-purple-600 bg-purple-50 text-purple-700'
+                        : 'border-gray-200 text-gray-600 hover:border-purple-300'
+                    }`}
+                  >
+                    Document Interview
+                  </button>
                 </div>
               </div>
 
-              {/* Interview Role */}
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Interview Role
-                </label>
+              {/* General Interview Mode */}
+              {interviewType === 'general' && (
+                <>
+                  <div>
+                    <label className="mb-3 block text-sm font-medium text-gray-700">
+                      Interview Mode
+                    </label>
 
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-full rounded-lg border border-gray-200 p-3 text-sm outline-none focus:border-purple-500"
-                >
-                  <option>Python Developer</option>
-                  <option>Full Stack Developer</option>
-                  <option>Backend Developer</option>
-                  <option>AI Engineer</option>
-                  <option>Frontend Developer</option>
-                </select>
-              </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { id: 'text', label: 'Text', icon: MessageSquare },
+                        { id: 'audio', label: 'Audio', icon: Mic },
+                        { id: 'video', label: 'Video', icon: Video },
+                      ].map((mode) => {
+                        const Icon = mode.icon
+
+                        return (
+                          <button
+                            key={mode.id}
+                            type="button"
+                            onClick={() => setInterviewMode(mode.id)}
+                            className={`rounded-xl border p-4 text-center transition ${
+                              interviewMode === mode.id
+                                ? 'border-purple-600 bg-purple-50 text-purple-700'
+                                : 'border-gray-200 text-gray-600 hover:border-purple-300'
+                            }`}
+                          >
+                            <Icon className="mx-auto h-6 w-6" />
+                            <div className="mt-2 text-sm font-semibold">
+                              {mode.label}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Interview Role
+                    </label>
+
+                    <select
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                      className="w-full rounded-lg border border-gray-200 p-3 text-sm outline-none focus:border-purple-500"
+                    >
+                      <option>Python Developer</option>
+                      <option>Full Stack Developer</option>
+                      <option>Backend Developer</option>
+                      <option>AI Engineer</option>
+                      <option>Frontend Developer</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* Document Selection */}
+              {interviewType === 'document' && (
+                <>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Select Processed Document
+                    </label>
+
+                    {isLoadingDocuments ? (
+                      <p className="text-sm text-gray-500">
+                        Loading your documents...
+                      </p>
+                    ) : (
+                      <select
+                        value={selectedDocumentId}
+                        onChange={(e) =>
+                          setSelectedDocumentId(e.target.value)
+                        }
+                        disabled={documents.length === 0}
+                        className="w-full rounded-lg border border-gray-200 p-3 text-sm outline-none focus:border-purple-500 disabled:bg-gray-100"
+                      >
+                        <option value="">Select a document</option>
+                        {documents.map((document) => (
+                          <option
+                            key={document.document_id}
+                            value={String(document.document_id)}
+                          >
+                            {document.filename}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    {!isLoadingDocuments && documents.length === 0 && (
+                      <p className="mt-2 text-xs text-gray-500">
+                        No processed documents available. Upload and process
+                        a document first.
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Number of Questions
+                    </label>
+
+                    <select
+                      value={questionCount}
+                      onChange={(e) => setQuestionCount(e.target.value)}
+                      className="w-full rounded-lg border border-gray-200 p-3 text-sm outline-none focus:border-purple-500"
+                    >
+                      <option value="5">5 Questions</option>
+                      <option value="10">10 Questions</option>
+                      <option value="15">15 Questions</option>
+                      <option value="20">20 Questions</option>
+                    </select>
+                  </div>
+                </>
+              )}
 
               {/* Difficulty */}
               <div>
@@ -419,6 +627,12 @@ function InterviewPage() {
                   <option value="60">60 Minutes</option>
                 </select>
               </div>
+
+              {documentError && (
+                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                  {documentError}
+                </div>
+              )}
             </div>
 
             {/* Modal Actions */}
@@ -426,20 +640,35 @@ function InterviewPage() {
               <button
                 type="button"
                 onClick={() => setShowSetup(false)}
-                className="cursor-pointer rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                disabled={isGenerating}
+                className="cursor-pointer rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
               >
                 Cancel
               </button>
 
               <button
                 type="button"
+                disabled={
+                  isGenerating ||
+                  (interviewType === 'document' &&
+                    (isLoadingDocuments || documents.length === 0))
+                }
                 onClick={() => {
-                  setShowSetup(false)
-                  setShowSession(true)
+                  if (interviewType === 'document') {
+                    void handleGenerateDocumentInterview()
+                  } else {
+                    setGeneratedQuestions(null)
+                    setShowSetup(false)
+                    setShowSession(true)
+                  }
                 }}
-                className="cursor-pointer rounded-lg bg-purple-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-700"
+                className="cursor-pointer rounded-lg bg-purple-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Continue
+                {isGenerating
+                  ? 'Generating Questions...'
+                  : interviewType === 'document'
+                    ? 'Generate Interview'
+                    : 'Continue'}
               </button>
             </div>
           </div>

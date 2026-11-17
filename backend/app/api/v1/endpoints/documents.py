@@ -1,4 +1,5 @@
 import logging
+from google.genai.errors import ServerError
 import uuid
 from pathlib import Path
 from fastapi import APIRouter, Depends, File, UploadFile, status
@@ -10,10 +11,21 @@ from app.models.user import User
 from app.services.document.document_ingestion_service import (
     DocumentIngestionService,
 )
-from app.schemas.document import DocumentQuestionRequest
-from pydantic import BaseModel, Field
+from app.services.document.document_management_service import (
+    DocumentManagementService,
+)
+from app.schemas.document import (
+    DocumentQuestionRequest,
+    DocumentInterviewRequest,
+)
+from app.services.document.document_interview_service import (
+    DocumentInterviewService,
+)
 from app.services.document.document_answer_service import (
     DocumentAnswerService,
+)
+from app.services.document.document_interview_service import (
+    DocumentInterviewService,
 )
 from app.utils.response import global_response_format
 
@@ -213,4 +225,138 @@ def ask_document_question(
             data=None,
             status_code=status.HTTP_502_BAD_GATEWAY,
             status_message="Failed to generate an answer",
+        )
+
+
+@router.post("/generate-interview")
+def generate_document_interview(
+    request: DocumentInterviewRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+
+        document = (
+            db.query(Document)
+            .filter(
+                Document.id == request.document_id,
+                Document.user_id == current_user.id,
+            )
+            .first()
+        )
+
+        if not document:
+            return global_response_format(
+                status_value=False,
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND,
+                status_message="Document not found",
+            )
+
+        if document.status != "processed":
+            return global_response_format(
+                status_value=False,
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                status_message="Document is not ready for interview generation",
+            )
+        interview_service = DocumentInterviewService()
+
+        questions = interview_service.generate_questions(
+            db=db,
+            document_id=request.document_id,
+            user_id=current_user.id,
+            difficulty=request.difficulty,
+            question_count=request.question_count,
+        )
+
+        return global_response_format(
+            status_value=True,
+            data={
+                "document_id": request.document_id,
+                "difficulty": request.difficulty,
+                "questions": questions,
+            },
+            status_code=status.HTTP_200_OK,
+            status_message="Interview questions generated successfully",
+        )
+
+    except ValueError as exc:
+        logger.warning(
+            "Document interview generation failed: %s", exc
+        )
+
+        return global_response_format(
+            status_value=False,
+            data=None,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            status_message=str(exc),
+        )
+    except ServerError as exc:
+        logger.warning(
+            "Gemini service temporarily unavailable: %s",
+            exc,
+        )
+        return global_response_format(
+            status_value=False,
+            data=None,
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            status_message=(
+                "AI service is temporarily busy. "
+                "Please try again in a few moments."
+            ),
+        )
+
+    except Exception as exc:
+        logger.exception(
+            "Document interview generation failed: %s", exc
+        )
+
+        return global_response_format(
+            status_value=False,
+            data=None,
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            status_message="Failed to generate interview questions",
+        )
+
+
+
+@router.delete("/{document_id}")
+def delete_document(
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        service = DocumentManagementService()
+
+        deleted = service.delete_document(
+            db=db,
+            document_id=document_id,
+            user_id=current_user.id,
+        )
+
+        if not deleted:
+            return global_response_format(
+                status_value=False,
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND,
+                status_message="Document not found",
+            )
+
+        return global_response_format(
+            status_value=True,
+            data={"document_id": document_id},
+            status_code=status.HTTP_200_OK,
+            status_message="Document deleted successfully",
+        )
+
+    except Exception as exc:
+        logger.exception("Document deletion failed: %s", exc)
+
+        return global_response_format(
+            status_value=False,
+            data=None,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_message="Failed to delete document",
         )
