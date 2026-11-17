@@ -39,10 +39,13 @@ class DocumentIngestionService:
 
             chunk_records = []
 
-            for index, chunk in enumerate(chunks):
-                embedding = self.embedding_service.generate_embedding(chunk)
+            embeddings = self.embedding_service.generate_embeddings(chunks)
 
-                chunk_record = DocumentChunk(
+            if len(embeddings) != len(chunks):
+                raise RuntimeError("Embedding count does not match chunk count")
+
+            chunk_records = [
+                DocumentChunk(
                     document_id=document.id,
                     chunk_index=index,
                     content=chunk,
@@ -52,8 +55,8 @@ class DocumentIngestionService:
                         "chunk_length": len(chunk),
                     },
                 )
-
-                chunk_records.append(chunk_record)
+                for index, (chunk, embedding) in enumerate(zip(chunks, embeddings))
+            ]   
 
             db.query(DocumentChunk).filter(
                 DocumentChunk.document_id == document.id

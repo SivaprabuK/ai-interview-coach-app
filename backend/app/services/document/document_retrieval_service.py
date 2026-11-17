@@ -16,6 +16,7 @@ class DocumentRetrievalService:
         query: str,
         user_id: int,
         top_k: int = 5,
+        document_id: int | None = None,
     ) -> list[tuple[DocumentChunk, float]]:
 
         if not query or not query.strip():
@@ -32,11 +33,20 @@ class DocumentRetrievalService:
             query_embedding
         ).label("cosine_distance")
 
-        results = (
+        query_builder = (
             db.query(DocumentChunk, distance)
             .join(Document)
             .filter(Document.status == "processed")
             .filter(Document.user_id == user_id)
+        )
+
+        if document_id is not None:
+            query_builder = query_builder.filter(
+                Document.id == document_id
+            )
+
+        results = (
+            query_builder
             .filter(distance <= SIMILARITY_THRESHOLD)
             .order_by(distance)
             .limit(top_k)

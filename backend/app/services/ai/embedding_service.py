@@ -1,10 +1,12 @@
 from google import genai
 from google.genai import types
-
 from app.core.config import settings
 
 
 class EmbeddingService:
+
+    BATCH_SIZE = 50
+
     def __init__(self) -> None:
         if not settings.gemini_api_key:
             raise ValueError("GEMINI_API_KEY is not configured")
@@ -13,30 +15,65 @@ class EmbeddingService:
             api_key=settings.gemini_api_key
         )
 
-    def generate_embedding(
+    def generate_embedding(self, text: str) -> list[float]:
+        embeddings = self.generate_embeddings([text])
+        return embeddings[0]
+
+    def generate_embeddings(
         self,
-        text: str,
-    ) -> list[float]:
-        if not text.strip():
-            raise ValueError("Text cannot be empty")
+        texts: list[str],
+    ) -> list[list[float]]:
 
-        response = self.client.models.embed_content(
-            model=settings.gemini_embedding_model,
-            contents=text,
-            config=types.EmbedContentConfig(
-                output_dimensionality=settings.gemini_embedding_dimensions,
-            ),
-        )
+        if not texts:
+            return []
 
-        if not response.embeddings:
-            raise RuntimeError("Gemini returned an empty embedding")
+        if any(not text.strip() for text in texts):
+            raise ValueError("Texts cannot contain empty values")
 
-        embedding = response.embeddings[0].values
+        all_embeddings = []
 
-        if embedding is None:
-            raise RuntimeError("Gemini returned an empty embedding vector")
+        for start in range(0, len(texts), self.BATCH_SIZE):
+            batch = texts[start:start + self.BATCH_SIZE]
 
-        if len(embedding) != settings.gemini_embedding_dimensions:
-            raise RuntimeError("Unexpected embedding dimensions")
+            contents = [
+                types.Content(
+                    role="user",
+                    parts=[
+                        types.Part.from_text(text=text)
+                    ],
+                )
+                for text in batch
+            ]
 
-        return embedding
+            response = self.client.models.embed_content(
+                model=settings.gemini_embedding_model,
+                contents=contents,
+                config=types.EmbedContentConfig(
+                    output_dimensionality=settings.gemini_embedding_dimensions,
+                ),
+            )
+
+            if not response.embeddings:
+                raise RuntimeError("Gemini returned empty embeddings")
+
+            if len(response.embeddings) != len(batch):
+                raise RuntimeError(
+                    "Mismatch between input texts and generated embeddings"
+                )
+
+            for item in response.embeddings:
+                embedding = item.values
+
+                if embedding is None:
+                    raise RuntimeError(
+                        "Gemini returned an empty embedding vector"
+                    )
+
+                if len(embedding) != settings.gemini_embedding_dimensions:
+                    raise RuntimeError(
+                        "Unexpected embedding dimensions"
+                    )
+
+                all_embeddings.append(embedding)
+
+        return all_embeddings

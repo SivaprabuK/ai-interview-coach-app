@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-
+from google.genai.errors import ServerError
 from app.api.dependencies import get_current_user
 from app.db.database import get_db
 from app.models import User
@@ -34,6 +34,12 @@ def evaluate_answer_endpoint(
             status_code=status.HTTP_200_OK,
             status_message="Answer evaluated successfully",
         )
+
+    except ServerError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Gemini is temporarily unavailable. Please try again later.",
+        ) from exc
 
     except ValueError as exc:
         raise HTTPException(
