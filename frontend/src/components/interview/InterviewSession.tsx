@@ -17,18 +17,6 @@ interface InterviewSessionProps {
   difficulty: string
   duration: string
   mode: string
-  onExit: () => void
-  onComplete: (
-    answers: Record<number, string>,
-    questions: InterviewQuestion[]
-  ) => void
-}
-
-interface InterviewSessionProps {
-  role: string
-  difficulty: string
-  duration: string
-  mode: string
   questions?: InterviewQuestion[]
   onExit: () => void
   onComplete: (
@@ -180,24 +168,27 @@ function InterviewSession({
       {/* Question Card */}
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         {/* Progress */}
-        <div className="mb-6 flex items-center justify-between">
-          <span className="text-sm font-semibold text-purple-700">
-            Question {currentQuestion + 1} of {questions.length}
-          </span>
+        <div className="mb-6">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-sm font-semibold text-purple-700">
+              Question {currentQuestion + 1} of {questions.length}
+            </span>
 
-          <span className="text-sm text-gray-500">
-            {Math.round(((currentQuestion + 1) / questions.length) * 100)}%
-            completed
-          </span>
-        </div>
+            <span className="text-sm font-semibold text-gray-600">
+              {Math.round(
+                ((currentQuestion + 1) / questions.length) * 100
+              )}% completed
+            </span>
+          </div>
 
-        <div className="mb-6 h-2 overflow-hidden rounded-full bg-gray-100">
-          <div
-            className="h-full rounded-full bg-purple-600 transition-all"
-            style={{
-              width: `${((currentQuestion + 1) / questions.length) * 100}%`,
-            }}
-          />
+          <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+            <div
+              className="h-full rounded-full bg-purple-600 transition-all duration-300"
+              style={{
+                width: `${((currentQuestion + 1) / questions.length) * 100}%`,
+              }}
+            />
+          </div>
         </div>
 
         {/* Question */}

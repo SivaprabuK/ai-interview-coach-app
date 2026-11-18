@@ -4,7 +4,7 @@ import {
   History,
   BarChart3,
   FileText,
-  Users,
+  UserRound,
   CircleHelp,
   Settings,
   LogOut,
@@ -19,7 +19,7 @@ const menuItems = [
   { name: 'Interview History', icon: History, path: '/interview-history' },
   { name: 'Insights', icon: BarChart3, path: '/insights' },
   { name: 'Documents', icon: FileText, path: '/documents' },
-  { name: 'Talent', icon: Users },
+  { name: 'My Career Profile', icon: UserRound, path: '/career-profile' },
   { name: 'FAQ', icon: CircleHelp },
   { name: 'Settings', icon: Settings },
 ]

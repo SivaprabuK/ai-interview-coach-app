@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, func
+from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, func, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.database import Base
 
@@ -22,7 +22,7 @@ class QuestionGeneration(Base):
         nullable=False,
     )
     experience_years: Mapped[int] = mapped_column(
-        Integer,
+        Float,
         nullable=False,
     )
     skills: Mapped[list[str]] = mapped_column(

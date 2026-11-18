@@ -22,6 +22,11 @@ import type {
   InterviewQuestion,
 } from '../types/evaluation'
 
+import { getUserProfile } from '../services/profileService'
+import type { UserProfile } from '../types/profile'
+import { generateAIQuestions } from '../services/aiQuestionService'
+
+
 function InterviewPage() {
   const [showSetup, setShowSetup] = useState(false)
   const [role, setRole] = useState('Python Developer')
@@ -48,6 +53,26 @@ function InterviewPage() {
   const [evaluationError, setEvaluationError] = useState<string | null>(null)
   const [evaluation, setEvaluation] =
     useState<InterviewEvaluation | null>(null)
+
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        const profile = await getUserProfile()
+
+        if (profile) {
+          setUserProfile(profile)
+          setRole(profile.target_roles[0] || 'Python Developer')
+          setDifficulty(profile.preferred_difficulty)
+        }
+      } catch (error) {
+        console.error('Failed to load career profile:', error)
+      }
+    }
+
+    void loadUserProfile()
+  }, [])
 
   useEffect(() => {
     if (!showSetup || interviewType !== 'document') return
@@ -104,6 +129,42 @@ function InterviewPage() {
       isActive = false
     }
   }, [showSetup, interviewType])
+
+
+  const handleGenerateGeneralInterview = async () => {
+    setIsGenerating(true)
+    setDocumentError(null)
+
+    try {
+      const difficultyMapping: Record<string, 'easy' | 'medium' | 'hard'> = {
+        Beginner: 'easy',
+        Intermediate: 'medium',
+        Advanced: 'hard',
+      }
+
+      const response = await generateAIQuestions({
+        role,
+        experience_years: userProfile?.years_of_experience ?? undefined,
+        skills: userProfile?.technical_skills?.length
+          ? userProfile.technical_skills
+          : undefined,
+        difficulty: difficultyMapping[difficulty] ?? 'medium',
+        number_of_questions: Number(questionCount),
+      })
+
+      setGeneratedQuestions(response.questions)
+      setShowSetup(false)
+      setShowSession(true)
+    } catch (error) {
+      setDocumentError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to generate interview questions.',
+      )
+    } finally {
+      setIsGenerating(false)
+    }
+  }
 
   const handleGenerateDocumentInterview = async () => {
     if (!selectedDocumentId) {
@@ -479,6 +540,11 @@ function InterviewPage() {
               {/* General Interview Mode */}
               {interviewType === 'general' && (
                 <>
+                  {userProfile && (
+                    <div className="rounded-lg border border-purple-100 bg-purple-50 p-3 text-sm text-purple-700">
+                      Using your saved Career Profile defaults. You can change them before starting.
+                    </div>
+                  )}
                   <div>
                     <label className="mb-3 block text-sm font-medium text-gray-700">
                       Interview Mode
@@ -610,6 +676,25 @@ function InterviewPage() {
                 </select>
               </div>
 
+              {/* Number of Questions */}
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  Number of Questions
+                </label>
+
+                <select
+                  value={questionCount}
+                  onChange={(e) => setQuestionCount(e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 p-3 text-sm outline-none focus:border-purple-500"
+                >
+                  {[5, 10, 15, 20].map((count) => (
+                    <option key={count} value={count}>
+                      {count} Questions
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Duration */}
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-700">
@@ -657,9 +742,7 @@ function InterviewPage() {
                   if (interviewType === 'document') {
                     void handleGenerateDocumentInterview()
                   } else {
-                    setGeneratedQuestions(null)
-                    setShowSetup(false)
-                    setShowSession(true)
+                    void handleGenerateGeneralInterview()
                   }
                 }}
                 className="cursor-pointer rounded-lg bg-purple-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
@@ -668,7 +751,7 @@ function InterviewPage() {
                   ? 'Generating Questions...'
                   : interviewType === 'document'
                     ? 'Generate Interview'
-                    : 'Continue'}
+                    : 'Generate Questions'}
               </button>
             </div>
           </div>
