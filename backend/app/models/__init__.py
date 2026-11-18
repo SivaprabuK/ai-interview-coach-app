@@ -8,6 +8,7 @@ from app.models.user import User
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from app.models.user_session import UserSession
+from app.models.user_profile import UserProfile
 
 __all__ = [
     "Interview",
@@ -19,5 +20,6 @@ __all__ = [
     "User",
     "Document",
     "DocumentChunk",
-    "UserSession"
+    "UserSession",
+    "UserProfile"
 ]

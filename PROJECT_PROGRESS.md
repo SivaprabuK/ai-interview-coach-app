@@ -8,6 +8,8 @@ An AI-powered interview preparation platform designed to help developers practic
 - Receive AI-assisted feedback on submitted answers.
 - Upload technical documents and ask questions based on their content.
 - Track interview preparation progress and identify improvement areas.
+- Maintain a personalized career profile.
+- Generate interview questions based on saved career details.
 - Build a full-stack application using modern backend, frontend, and AI technologies.
 
 ## Technology Stack
@@ -90,6 +92,38 @@ ai-interview-coach/
 - [x] Implement performance insights API.
 - [x] Calculate evaluation metrics, average scores, and score trends.
 - [x] Identify frequently mentioned strengths and improvement areas.
+- [x] Implement the Career Profile model and database migration.
+- [x] Implement Career Profile GET and PUT APIs.
+- [x] Implement user-specific Career Profile management.
+- [x] Integrate Career Profile defaults with AI question generation.
+- [x] Support role, experience, skills, and difficulty fallback from the saved profile.
+- [x] Support fractional years of experience.
+- [x] Support configurable question generation from 1 to 20 questions.
+- [x] Store resolved question-generation details in interview history.
+
+### Career Profile Module
+
+- [x] Create a user-specific Career Profile.
+- [x] Store professional summary.
+- [x] Store years of experience.
+- [x] Store technical skills.
+- [x] Store target job roles.
+- [x] Store preferred interview difficulty.
+- [x] Implement profile creation and update functionality.
+- [x] Implement profile retrieval functionality.
+- [x] Integrate profile details with AI question generation.
+
+### AI Question Generation Module
+
+- [x] Integrate Google Gemini for interview question generation.
+- [x] Generate questions based on the selected job role.
+- [x] Use saved Career Profile experience and technical skills.
+- [x] Map profile difficulty levels to AI generation difficulty.
+- [x] Allow users to override profile defaults during interview setup.
+- [x] Support configurable question counts: 5, 10, 15, and 20.
+- [x] Validate the requested number of generated questions.
+- [x] Store generated questions in question-generation history.
+- [x] Verify generated questions through the frontend interview workflow.
 
 ### Document-Based RAG Module
 
@@ -124,6 +158,17 @@ ai-interview-coach/
 - [x] Implement logout functionality.
 - [x] Implement protected routes.
 - [x] Verify frontend API integration and production build.
+- [x] Create the My Career Profile page.
+- [x] Integrate Career Profile GET and PUT APIs.
+- [x] Implement profile loading, editing, and saving.
+- [x] Load saved Career Profile defaults in interview setup.
+- [x] Integrate AI question generation with the interview setup.
+- [x] Add question-count selection (5, 10, 15, and 20).
+- [x] Display dynamically generated questions in interview sessions.
+- [x] Implement interview question progress tracking.
+- [x] Display current question number and total question count.
+- [x] Implement a dynamic progress percentage and progress bar.
+- [x] Verify the interview generation workflow and frontend production build.
 - [ ] Build the document upload and listing interface.
 - [ ] Integrate document-based question answering.
 
@@ -147,16 +192,35 @@ ai-interview-coach/
 - [x] Insights service tests.
 - [x] Logout and refresh token tests.
 
-**Latest complete backend test result:** 100 passed.
+**Latest previously recorded complete backend test result: 100 passed.**
+
+The newly implemented Career Profile and question-generation integration was also manually verified through the API and frontend. The frontend production build succeeded after the latest interview UI changes.
 
 ## Project Status
 
-The backend has implemented its core interview preparation functionality, authentication, database integration, document-based RAG capabilities, and performance insights.
+The backend has implemented its core interview preparation functionality, authentication, database integration, document-based RAG capabilities, performance insights, and personalized Career Profile management.
+
+The Career Profile module allows users to maintain their professional summary, experience, technical skills, target roles, and preferred interview difficulty.
+
+AI question generation now integrates with the saved Career Profile. When generating questions, the application can automatically use the user's saved role, experience, technical skills, and preferred difficulty. Users can also override these defaults during interview setup.
+
+The question-generation interface supports selecting 5, 10, 15, or 20 questions. Generated questions are displayed dynamically in the interview session, with a progress indicator showing the current question, total question count, and completion percentage.
 
 The document Q&A module supports uploading PDF/DOCX files, extracting and embedding their content, retrieving relevant information using PostgreSQL pgvector, and generating context-based answers using Gemini.
 
-The frontend now includes authentication, dashboard, interview workflows, interview history, and a performance insights dashboard. Frontend authentication supports automatic access token refresh, logout, and protected routes.
+The frontend now includes authentication, dashboard, interview workflows, interview history, performance insights, Career Profile management, and dynamic AI question generation.
 
 The next development phase focuses on completing document management and document-based Q&A frontend integration, followed by Docker configuration, CI/CD, end-to-end testing, and deployment.
 
 This project is under active development, with a focus on clean architecture, testing, and practical AI engineering skills.
+
+## Next Development Priorities
+
+1. Complete document upload and listing UI.
+2. Integrate document-based question answering into the frontend.
+3. Verify complete interview and document workflows.
+4. Run the complete backend test suite and frontend production build.
+5. Configure Docker for the application.
+6. Implement GitHub Actions CI/CD.
+7. Perform end-to-end testing.
+8. Deploy the application.

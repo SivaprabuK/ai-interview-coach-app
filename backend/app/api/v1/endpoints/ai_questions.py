@@ -9,6 +9,7 @@ from app.schemas.ai_questions import QuestionGenerationRequest
 from app.services.ai.ai_question_service import AIQuestionService
 from app.utils.response import global_response_format
 from app.services.ai.question_history_service import QuestionHistoryService
+from app.services.user_profile_service import UserProfileService
 
 logger = logging.getLogger(__name__)
 
@@ -44,16 +45,68 @@ def generate_questions(
                     status_message="Interview not found",
                 )
 
+        profile = UserProfileService.get_profile(
+            db=db,
+            user_id=current_user.id,
+        )
+
+        role = request.role or (
+            profile.target_roles[0] if profile and profile.target_roles else None
+        )
+
+        experience_years = (
+            request.experience_years
+            if request.experience_years is not None
+            else profile.years_of_experience if profile else None
+        )
+
+        skills = (
+            request.skills
+            if request.skills is not None
+            else profile.technical_skills if profile else None
+        )
+
+        difficulty_mapping = {
+            "Beginner": "easy",
+            "Intermediate": "medium",
+            "Advanced": "hard",
+        }
+
+        difficulty = request.difficulty or (
+            difficulty_mapping.get(profile.preferred_difficulty, "medium")
+            if profile else "medium"
+        )
+
+        if not role or experience_years is None or not skills:
+            return global_response_format(
+                status_value=False,
+                data={},
+                status_code=status.HTTP_400_BAD_REQUEST,
+                status_message=(
+                    "Please complete your Career Profile or provide "
+                    "role, experience, and skills."
+                ),
+            )
+
+        resolved_request = request.model_copy(
+            update={
+                "role": role,
+                "experience_years": experience_years,
+                "skills": skills,
+                "difficulty": difficulty,
+            }
+        )
+
         service = AIQuestionService()
-        result = service.generate_questions(request)
+        result = service.generate_questions(resolved_request)
 
         generation = QuestionGeneration(
             user_id=current_user.id,
             interview_id=request.interview_id,
-            role=request.role,
-            experience_years=request.experience_years,
-            skills=request.skills,
-            difficulty=request.difficulty,
+            role=resolved_request.role,
+            experience_years=resolved_request.experience_years,
+            skills=resolved_request.skills,
+            difficulty=resolved_request.difficulty,
         )
 
         generation.questions = [
