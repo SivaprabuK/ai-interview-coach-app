@@ -447,3 +447,31 @@ def test_ask_document_question_invalid_top_k(
     )
 
     assert response.status_code == 422
+
+
+def test_upload_empty_document(client, auth_headers):
+    response = client.post(
+        "/api/v1/documents/upload",
+        headers=auth_headers,
+        files={
+            "file": ("empty.pdf", b"", "application/pdf")
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["status"] is False
+
+
+def test_upload_document_exceeds_size_limit(client, auth_headers):
+    large_content = b"x" * (10 * 1024 * 1024 + 1)
+
+    response = client.post(
+        "/api/v1/documents/upload",
+        headers=auth_headers,
+        files={
+            "file": ("large.pdf", large_content, "application/pdf")
+        },
+    )
+
+    assert response.status_code == 413
+    assert response.json()["status"] is False
