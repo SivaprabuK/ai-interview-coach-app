@@ -20,7 +20,7 @@ const menuItems = [
   { name: 'Insights', icon: BarChart3, path: '/insights' },
   { name: 'Documents', icon: FileText, path: '/documents' },
   { name: 'My Career Profile', icon: UserRound, path: '/career-profile' },
-  { name: 'FAQ', icon: CircleHelp },
+  { name: 'FAQ', icon: CircleHelp, path: '/faq' },
   { name: 'Settings', icon: Settings },
 ]
 
