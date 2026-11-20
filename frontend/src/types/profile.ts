@@ -6,6 +6,7 @@ export interface UserProfile {
   technical_skills: string[]
   target_roles: string[]
   preferred_difficulty: 'Beginner' | 'Intermediate' | 'Advanced'
+  preferred_question_count: number
 }
 
 export interface UserProfileRequest {
@@ -14,4 +15,5 @@ export interface UserProfileRequest {
   technical_skills: string[]
   target_roles: string[]
   preferred_difficulty: 'Beginner' | 'Intermediate' | 'Advanced'
+  preferred_question_count?: number
 }

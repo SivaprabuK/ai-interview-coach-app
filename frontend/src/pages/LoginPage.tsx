@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { loginUser } from '../services/authService'
+import { registerUser, loginUser } from '../services/authService'
 
 function LoginPage() {
   const navigate = useNavigate()
@@ -9,6 +9,15 @@ function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showRegister, setShowRegister] = useState(false)
+  const [registerName, setRegisterName] = useState('')
+  const [registerEmail, setRegisterEmail] = useState('')
+  const [registerPassword, setRegisterPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [registerError, setRegisterError] = useState('')
+  const [registerMessage, setRegisterMessage] = useState('')
+  const [registerLoading, setRegisterLoading] = useState(false)
+  const [emailError, setEmailError] = useState('')
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -22,6 +31,70 @@ function LoginPage() {
       setError('Invalid email or password. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleRegister = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setRegisterError('')
+    setRegisterMessage('')
+    setEmailError('')
+
+    const strongPassword =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,128}$/
+
+    if (!strongPassword.test(registerPassword)) {
+      setRegisterError(
+        'Password must contain at least 8 characters, including uppercase, lowercase, number, and special character.',
+      )
+      return
+    }
+
+    if (registerPassword !== confirmPassword) {
+      setRegisterError('Passwords do not match.')
+      return
+    }
+
+    try {
+      setRegisterLoading(true)
+
+      await registerUser({
+        name: registerName.trim(),
+        email: registerEmail.trim(),
+        password: registerPassword,
+      })
+
+      setRegisterMessage('Registration successful! Please sign in.')
+
+      setEmail(registerEmail.trim())
+      setPassword('')
+      setRegisterName('')
+      setRegisterEmail('')
+      setRegisterPassword('')
+      setConfirmPassword('')
+
+      setTimeout(() => {
+        setShowRegister(false)
+        setRegisterMessage('')
+      }, 1500)
+    } catch (err: unknown) {
+      const error = err as {
+        response?: {
+          data?: {
+            message?: string
+          }
+        }
+      }
+
+      const message = error.response?.data?.message
+
+      if (message === 'Email is already registered') {
+        setEmailError(message)
+      } else {
+        setRegisterError(message || 'Registration failed. Please try again.')
+      }
+    } finally {
+      setRegisterLoading(false)
     }
   }
 
@@ -81,7 +154,145 @@ function LoginPage() {
         >
           {loading ? 'Signing in...' : 'Sign In'}
         </button>
+
+        <p className="text-center text-sm text-gray-400">
+          New user?{' '}
+          <button
+            type="button"
+            onClick={() => {
+              setShowRegister(true)
+              setRegisterError('')
+              setRegisterMessage('')
+            }}
+            className="font-semibold text-purple-400 hover:text-purple-300"
+          >
+            Register
+          </button>
+        </p>
       </form>
+
+      {showRegister && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+        <form
+          onSubmit={handleRegister}
+          className="w-full max-w-md space-y-5 rounded-2xl border border-gray-800 bg-gray-900 p-8 shadow-2xl"
+        >
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-white">
+              Create Account
+            </h2>
+            <p className="mt-2 text-sm text-gray-400">
+              Register to start practicing with AI.
+            </p>
+          </div>
+
+          {registerError && (
+            <p className="rounded-lg bg-red-500/10 p-3 text-sm text-red-400">
+              {registerError}
+            </p>
+          )}
+
+          {registerMessage && (
+            <p className="rounded-lg bg-green-500/10 p-3 text-sm text-green-400">
+              {registerMessage}
+            </p>
+          )}
+
+          <div>
+            <label className="mb-2 block text-sm text-gray-300">
+              Full Name
+            </label>
+            <input
+              type="text"
+              value={registerName}
+              onChange={(event) => setRegisterName(event.target.value)}
+              required
+              minLength={2}
+              maxLength={100}
+              disabled={registerLoading}
+              className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-3 text-white outline-none focus:border-purple-500"
+              placeholder="Enter your name"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm text-gray-300">
+              Email
+            </label>
+            <input
+              type="email"
+              value={registerEmail}
+              onChange={(event) => setRegisterEmail(event.target.value)}
+              required
+              disabled={registerLoading}
+              className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-3 text-white outline-none focus:border-purple-500"
+              placeholder="Enter your email"
+            />
+            {emailError && (
+              <p className="mt-2 text-sm text-red-400">
+                {emailError}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm text-gray-300">
+              Password
+            </label>
+            <input
+              type="password"
+              value={registerPassword}
+              onChange={(event) => setRegisterPassword(event.target.value)}
+              required
+              minLength={8}
+              disabled={registerLoading}
+              className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-3 text-white outline-none focus:border-purple-500"
+              placeholder="Create a password"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm text-gray-300">
+              Confirm Password
+            </label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              required
+              minLength={8}
+              disabled={registerLoading}
+              className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-3 text-white outline-none focus:border-purple-500"
+              placeholder="Confirm your password"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={registerLoading}
+            className="w-full rounded-lg bg-purple-600 py-3 font-semibold text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {registerLoading ? 'Creating Account...' : 'Register'}
+          </button>
+
+          <p className="text-center text-sm text-gray-400">
+            Already have an account?{' '}
+            <button
+              type="button"
+              disabled={registerLoading}
+              onClick={() => {
+                setShowRegister(false)
+                setRegisterError('')
+                setRegisterMessage('')
+              }}
+              className="font-semibold text-purple-400 hover:text-purple-300"
+            >
+              Sign In
+            </button>
+          </p>
+        </form>
+      </div>
+    )}
     </div>
   )
 }

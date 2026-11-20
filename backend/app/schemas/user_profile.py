@@ -17,6 +17,12 @@ class UserProfileCreateUpdate(BaseModel):
         default="Intermediate",
         pattern="^(Beginner|Intermediate|Advanced)$"
     )
+    preferred_question_count: int = Field(
+        default=10,
+        ge=5,
+        le=20,
+        multiple_of=5,
+    )
 
 
 class UserProfileResponse(UserProfileCreateUpdate):

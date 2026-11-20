@@ -53,3 +53,10 @@ class UserProfile(Base):
         default="Intermediate",
         nullable=False,
     )
+
+    preferred_question_count: Mapped[int] = mapped_column(
+        Integer,
+        default=10,
+        server_default="10",
+        nullable=False,
+    )

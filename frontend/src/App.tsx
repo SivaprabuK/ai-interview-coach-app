@@ -13,6 +13,7 @@ import InsightsPage from './pages/InsightsPage'
 import DocumentsPage from './pages/DocumentsPage'
 import CareerProfilePage from './pages/CareerProfilePage'
 import FAQPage from './pages/FAQPage'
+import SettingsPage from './pages/SettingsPage'
 
 function Dashboard() {
   return (
@@ -53,6 +54,7 @@ function App() {
             <Route path="documents" element={<DocumentsPage />} />
             <Route path="career-profile" element={<CareerProfilePage />} />
             <Route path="faq" element={<FAQPage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Route>
       </Routes>

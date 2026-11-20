@@ -65,6 +65,7 @@ function InterviewPage() {
           setUserProfile(profile)
           setRole(profile.target_roles[0] || 'Python Developer')
           setDifficulty(profile.preferred_difficulty)
+          setQuestionCount(String(profile.preferred_question_count))
         }
       } catch (error) {
         console.error('Failed to load career profile:', error)
@@ -291,14 +292,14 @@ function InterviewPage() {
     setEvaluationError(null)
     setIsEvaluating(false)
 
-    setRole('Python Developer')
-    setDifficulty('Intermediate')
+    setRole(userProfile?.target_roles[0] || 'Python Developer')
+    setDifficulty(userProfile?.preferred_difficulty || 'Intermediate')
     setDuration('30')
     setInterviewMode('text')
 
     setInterviewType('general')
     setSelectedDocumentId('')
-    setQuestionCount('5')
+    setQuestionCount(String(userProfile?.preferred_question_count ?? 10))
     setGeneratedQuestions(null)
     setDocumentError(null)
 

@@ -9,7 +9,7 @@ from app.core.security import decode_access_token
 from app.db.database import get_db
 from app.models import User
 from app.schemas.auth import LoginRequest, RefreshTokenRequest
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, UserUpdate, PasswordChangeRequest
 from app.services.auth_service import AuthService
 from app.api.dependencies import bearer_scheme, get_current_user
 from app.utils.response import global_response_format
@@ -133,3 +133,88 @@ def logout_user(
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+@router.get("/me")
+def get_account(
+    current_user: Annotated[
+        User,
+        Depends(get_current_user),
+    ],
+):
+    return global_response_format(
+        status_value=True,
+        data={
+            "id": current_user.id,
+            "name": current_user.name,
+            "email": current_user.email,
+        },
+        status_code=status.HTTP_200_OK,
+        status_message="Account details retrieved successfully",
+    )
+
+
+@router.patch("/me")
+def update_account(
+    user_data: UserUpdate,
+    current_user: Annotated[
+        User,
+        Depends(get_current_user),
+    ],
+    db: Session = Depends(get_db),
+):
+    try:
+        updated_user = AuthService.update_user(
+            db=db,
+            user=current_user,
+            name=user_data.name,
+            email=str(user_data.email) if user_data.email else None,
+        )
+
+        return global_response_format(
+            status_value=True,
+            data={
+                "id": updated_user.id,
+                "name": updated_user.name,
+                "email": updated_user.email,
+            },
+            status_code=status.HTTP_200_OK,
+            status_message="Account updated successfully",
+        )
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+
+@router.post("/change-password")
+def change_password(
+    password_data: PasswordChangeRequest,
+    current_user: Annotated[
+        User,
+        Depends(get_current_user),
+    ],
+    db: Session = Depends(get_db),
+):
+    try:
+        AuthService.change_password(
+            db=db,
+            user=current_user,
+            current_password=password_data.current_password,
+            new_password=password_data.new_password,
+        )
+
+        return global_response_format(
+            status_value=True,
+            data={},
+            status_code=status.HTTP_200_OK,
+            status_message="Password changed successfully",
+        )
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+

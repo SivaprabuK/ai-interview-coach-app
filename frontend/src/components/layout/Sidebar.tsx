@@ -21,7 +21,7 @@ const menuItems = [
   { name: 'Documents', icon: FileText, path: '/documents' },
   { name: 'My Career Profile', icon: UserRound, path: '/career-profile' },
   { name: 'FAQ', icon: CircleHelp, path: '/faq' },
-  { name: 'Settings', icon: Settings },
+  { name: 'Settings', icon: Settings, path: '/settings' },
 ]
 
 function Sidebar() {

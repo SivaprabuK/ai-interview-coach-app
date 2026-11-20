@@ -3,7 +3,7 @@ from app.core.security import hash_password
 from app.services.auth_service import AuthService
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
-
+from app.models import UserSession
 from app.api.dependencies import get_current_user
 from app.core.security import create_access_token
 from app.db.database import get_db
@@ -320,3 +320,149 @@ def test_logout_user_success(client):
     )
 
     assert second_response.status_code == 401
+
+def test_update_account_success(client, auth_user, auth_headers):
+    response = client.patch(
+        "/api/v1/auth/me",
+        headers=auth_headers,
+        json={
+            "name": "Updated Test User",
+            "email": "updated@example.com",
+        },
+    )
+
+    assert response.status_code == 200
+
+    result = response.json()
+
+    assert result["status"] is True
+    assert result["message"] == "Account updated successfully"
+    assert result["data"]["id"] == auth_user.id
+    assert result["data"]["name"] == "Updated Test User"
+    assert result["data"]["email"] == "updated@example.com"
+
+def test_update_account_duplicate_email(client, auth_user, auth_headers, db_session):
+    User(
+        name="Another User",
+        email="another@example.com",
+        hashed_password=hash_password("TestPass123!"),
+        is_active=True,
+    )
+    other_user = User(
+        name="Another User",
+        email="another@example.com",
+        hashed_password=hash_password("TestPass123!"),
+        is_active=True,
+    )
+    db_session.add(other_user)
+    db_session.commit()
+
+    response = client.patch(
+        "/api/v1/auth/me",
+        headers=auth_headers,
+        json={"email": "another@example.com"},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["message"] == "Email is already registered"
+
+def test_update_account_name_only(client, auth_user, auth_headers):
+    response = client.patch(
+        "/api/v1/auth/me",
+        headers=auth_headers,
+        json={"name": "New Test Name"},
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()["data"]
+
+    assert data["name"] == "New Test Name"
+    assert data["email"] == auth_user.email
+
+def test_change_password_success(client, auth_user, auth_headers):
+    old_password_hash = auth_user.hashed_password
+
+    response = client.post(
+        "/api/v1/auth/change-password",
+        headers=auth_headers,
+        json={
+            "current_password": "TestPass123!",
+            "new_password": "NewPass123!",
+        },
+    )
+
+    assert response.status_code == 200
+
+    result = response.json()
+
+    assert result["status"] is True
+    assert result["message"] == "Password changed successfully"
+    assert auth_user.hashed_password != old_password_hash
+
+def test_change_password_invalid_current_password(
+    client,
+    auth_user,
+    auth_headers,
+):
+    response = client.post(
+        "/api/v1/auth/change-password",
+        headers=auth_headers,
+        json={
+            "current_password": "WrongPass123!",
+            "new_password": "NewPass123!",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["message"] == "Current password is incorrect"
+
+def test_change_password_revokes_sessions(
+    client,
+    auth_user,
+    auth_headers,
+    db_session,
+):
+    response = client.post(
+        "/api/v1/auth/change-password",
+        headers=auth_headers,
+        json={
+            "current_password": "TestPass123!",
+            "new_password": "NewPass123!",
+        },
+    )
+
+    assert response.status_code == 200
+
+    sessions = (
+        db_session.query(UserSession)
+        .filter(UserSession.user_id == auth_user.id)
+        .all()
+    )
+
+    assert sessions
+    assert all(session.revoked_at is not None for session in sessions)
+
+def test_old_access_token_rejected_after_password_change(
+    client,
+    auth_user,
+    auth_headers,
+):
+    change_response = client.post(
+        "/api/v1/auth/change-password",
+        headers=auth_headers,
+        json={
+            "current_password": "TestPass123!",
+            "new_password": "NewPass123!",
+        },
+    )
+
+    assert change_response.status_code == 200
+
+    response = client.patch(
+        "/api/v1/auth/me",
+        headers=auth_headers,
+        json={"name": "Should Not Update"},
+    )
+
+    assert response.status_code == 401
