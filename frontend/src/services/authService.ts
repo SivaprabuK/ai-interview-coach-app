@@ -5,6 +5,12 @@ interface LoginRequest {
   password: string
 }
 
+interface RegisterRequest {
+  name: string
+  email: string
+  password: string
+} 
+
 interface LoginResponse {
   access_token: string
   refresh_token: string
@@ -16,6 +22,17 @@ interface ApiResponse<T> {
   data: T
   status_code: number
   message: string
+}
+
+interface AccountDetails {
+  id: number
+  name: string
+  email: string
+}
+
+interface UpdateAccountRequest {
+  name: string
+  email: string
 }
 
 export const loginUser = async (
@@ -35,6 +52,13 @@ export const loginUser = async (
 }
 
 
+export const registerUser = async (
+  userData: RegisterRequest,
+): Promise<void> => {
+  await api.post('/auth/register', userData)
+}
+
+
 export const logoutUser = async (): Promise<void> => {
   try {
     await api.post('/auth/logout')
@@ -44,3 +68,30 @@ export const logoutUser = async (): Promise<void> => {
   }
 }
 
+
+export const getAccountDetails = async (): Promise<AccountDetails> => {
+  const response = await api.get<ApiResponse<AccountDetails>>('/auth/me')
+
+  return response.data.data
+}
+
+export const updateAccount = async (
+  accountData: UpdateAccountRequest,
+): Promise<AccountDetails> => {
+  const response = await api.patch<ApiResponse<AccountDetails>>(
+    '/auth/me',
+    accountData,
+  )
+
+  return response.data.data
+}
+
+export const changePassword = async (
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> => {
+  await api.post('/auth/change-password', {
+    current_password: currentPassword,
+    new_password: newPassword,
+  })
+}

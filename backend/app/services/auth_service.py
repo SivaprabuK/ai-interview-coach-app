@@ -196,3 +196,61 @@ class AuthService:
             db.commit()
 
         return True
+
+    @staticmethod
+    def update_user(
+        db: Session,
+        user: User,
+        name: str | None = None,
+        email: str | None = None,
+    ) -> User:
+
+        if name is not None:
+            user.name = name
+
+        if email is not None:
+            existing_user = (
+                db.query(User)
+                .filter(
+                    User.email == email,
+                    User.id != user.id,
+                )
+                .first()
+            )
+
+            if existing_user:
+                raise ValueError("Email is already registered")
+
+            user.email = email
+
+        db.commit()
+        db.refresh(user)
+
+        return user
+
+
+    @staticmethod
+    def change_password(
+        db: Session,
+        user: User,
+        current_password: str,
+        new_password: str,
+    ) -> None:
+
+        if not verify_password(
+            current_password,
+            user.hashed_password,
+        ):
+            raise ValueError("Current password is incorrect")
+
+        user.hashed_password = hash_password(new_password)
+
+        db.query(UserSession).filter(
+            UserSession.user_id == user.id,
+            UserSession.revoked_at.is_(None),
+        ).update(
+            {"revoked_at": datetime.now(timezone.utc)},
+            synchronize_session=False,
+        )
+
+        db.commit()
